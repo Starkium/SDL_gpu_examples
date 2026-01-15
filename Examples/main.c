@@ -258,10 +258,16 @@ int main(int argc, char **argv)
 		context.DeltaTime = newTime - lastTime;
 		lastTime = newTime;
 
-		if (Examples[exampleIndex]->Update(&context) < 0)
+		int updateResult = Examples[exampleIndex]->Update(&context);
+		if (updateResult < 0)
 		{
 			SDL_Log("Update failed!");
 			return 1;
+		}
+		if (updateResult > 0)
+		{
+			// Graceful exit requested by example
+			return 0;
 		}
 
 		if (canDraw)

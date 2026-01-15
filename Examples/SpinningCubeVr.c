@@ -18,6 +18,7 @@ static XrInstance instance = NULL;
 static XrSystemId systemId = 0;
 static XrSession session = NULL;
 static bool doXrFrameLoop = false;
+static bool sessionExiting = false;
 static XrSpace localSpace = NULL;
 
 static Swapchain *swapchains = NULL;
@@ -212,6 +213,7 @@ static int Init(Context* context)
 
 	SDL_PropertiesID props = SDL_CreateProperties();
 	SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true);
+	SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN, true);
 	SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, true);
 	SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_XR_ENABLE, true);
 	SDL_SetPointerProperty(props, SDL_PROP_GPU_DEVICE_CREATE_XR_INSTANCE_OUT, &instance);
@@ -475,8 +477,9 @@ static int HandleStateChangedEvent(Context* context, XrEventDataSessionStateChan
 		}
 		case XR_SESSION_STATE_EXITING:
 		{
-			SDL_Log("Session exiting");
-			return -1;
+			SDL_Log("OpenXR session exiting normally");
+			sessionExiting = true;
+			return 1;  // Return 1 to indicate graceful exit, not error
 		}
 		default:
 			break;
@@ -496,7 +499,8 @@ static int HandleXrEvent(Context* context)
 			case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED:
 			{
 				XrEventDataSessionStateChanged *stateChangedEvent = ((XrEventDataSessionStateChanged *)&event);
-				if(HandleStateChangedEvent(context, stateChangedEvent) != 0) return -1;
+				int stateResult = HandleStateChangedEvent(context, stateChangedEvent);
+				if(stateResult != 0) return stateResult;  // Propagate both errors (<0) and graceful exit (>0)
 				break;
 			}
 			case XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING:
@@ -514,7 +518,9 @@ static int HandleXrEvent(Context* context)
 
 static int Update(Context* context)
 {
-	if(HandleXrEvent(context) != 0) return -1;
+	int eventResult = HandleXrEvent(context);
+	if(eventResult < 0) return -1;  // Error
+	if(eventResult > 0 || sessionExiting) return 1;  // Graceful exit
 
 	// Update time for animations
 	Time += context->DeltaTime;
