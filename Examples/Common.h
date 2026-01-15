@@ -135,6 +135,8 @@ extern Example BlitMirror_Example;
 extern Example GenerateMipmaps_Example;
 extern Example ASTC_Example;
 extern Example BasicVr_Example;
+extern Example SpinningCubeVr_Example;
+// extern Example VrGallery_Example;  // Disabled - needs more work
 extern Example Latency_Example;
 
 #endif

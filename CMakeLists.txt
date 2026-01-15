@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.10)
 project(SDL_gpu_examples)
 find_package(SDL3 REQUIRED)
 
+# OpenXR SDK path (can be overridden)
+set(OPENXR_SDK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../OpenXR-SDK-Source" CACHE PATH "Path to OpenXR SDK source")
+set(OPENXR_SDK_BUILD "${OPENXR_SDK_PATH}/build" CACHE PATH "Path to OpenXR SDK build")
+
 add_executable(SDL_gpu_examples
     Examples/main.c
     Examples/Common.h
@@ -37,13 +41,27 @@ add_executable(SDL_gpu_examples
     Examples/ASTC.c
     Examples/Latency.c
     Examples/BasicVr.c
+    Examples/SpinningCubeVr.c
+    # Examples/VrGallery.c  # Disabled - needs more work
 )
 
 target_link_libraries(SDL_gpu_examples
     SDL3::SDL3
 )
 
-target_link_libraries(SDL_gpu_examples openxr_loader)
+# OpenXR includes and library - headers are generated to build/include
+target_include_directories(SDL_gpu_examples PRIVATE "${OPENXR_SDK_BUILD}/include")
+find_library(OPENXR_LOADER_LIBRARY 
+    NAMES openxr_loader
+    PATHS "${OPENXR_SDK_BUILD}/src/loader/Release" "${OPENXR_SDK_BUILD}/src/loader/Debug" "${OPENXR_SDK_BUILD}/src/loader"
+    NO_DEFAULT_PATH
+)
+if(OPENXR_LOADER_LIBRARY)
+    target_link_libraries(SDL_gpu_examples ${OPENXR_LOADER_LIBRARY})
+    message(STATUS "Found OpenXR loader: ${OPENXR_LOADER_LIBRARY}")
+else()
+    message(WARNING "OpenXR loader not found in ${OPENXR_SDK_BUILD}/src/loader - build the OpenXR SDK first")
+endif()
 
 add_custom_command(TARGET SDL_gpu_examples POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/Content $<TARGET_FILE_DIR:SDL_gpu_examples>/Content

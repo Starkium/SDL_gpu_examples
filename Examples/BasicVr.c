@@ -37,6 +37,8 @@ static int Init(Context* context)
 		return -1;
 	}
 
+	SDL_Log("DEBUG: XR instance = %p, systemId = %llu", (void*)instance, (unsigned long long)systemId);
+
 	XrSessionCreateInfo sessionCreateInfo = {XR_TYPE_SESSION_CREATE_INFO};
 	XR_ERR_RET(SDL_CreateGPUXRSession(context->Device, &sessionCreateInfo, &session), -1);
 
@@ -257,7 +259,8 @@ static int Draw(Context* context)
 		XR_ERR_RET(xrBeginFrame(session, &frameBeginInfo), -1);
 
 		// If we need to render, fill out the projection views for each eye
-		XrCompositionLayerProjectionView projectionViews[viewCount];
+		// Use alloca for MSVC compatibility (doesn't support C99 VLAs)
+		XrCompositionLayerProjectionView *projectionViews = (XrCompositionLayerProjectionView *)SDL_stack_alloc(XrCompositionLayerProjectionView, viewCount);
 
 		if(frameState.shouldRender)
 		{
@@ -329,6 +332,7 @@ static int Draw(Context* context)
 		frameEndInfo.layers = projectionLayers;
 
 		XR_ERR_RET(xrEndFrame(session, &frameEndInfo), -1);
+		SDL_stack_free(projectionViews);
 	} 
 	// If we aren't in the OpenXR frame loop, let's still render to the desktop view in our own frame loop
 	else {

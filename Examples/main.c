@@ -3,6 +3,7 @@
 
 static Example* Examples[] =
 {
+	&SpinningCubeVr_Example,
 	&BasicVr_Example,
 	&ClearScreen_Example,
 #if !(defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES))
