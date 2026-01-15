@@ -51,16 +51,24 @@ target_link_libraries(SDL_gpu_examples
 
 # OpenXR includes and library - headers are generated to build/include
 target_include_directories(SDL_gpu_examples PRIVATE "${OPENXR_SDK_BUILD}/include")
+
+# First try to find OpenXR in the local SDK build
 find_library(OPENXR_LOADER_LIBRARY 
     NAMES openxr_loader
     PATHS "${OPENXR_SDK_BUILD}/src/loader/Release" "${OPENXR_SDK_BUILD}/src/loader/Debug" "${OPENXR_SDK_BUILD}/src/loader"
     NO_DEFAULT_PATH
 )
+
+# If not found locally, try system OpenXR
+if(NOT OPENXR_LOADER_LIBRARY)
+    find_library(OPENXR_LOADER_LIBRARY NAMES openxr_loader)
+endif()
+
 if(OPENXR_LOADER_LIBRARY)
     target_link_libraries(SDL_gpu_examples ${OPENXR_LOADER_LIBRARY})
     message(STATUS "Found OpenXR loader: ${OPENXR_LOADER_LIBRARY}")
 else()
-    message(WARNING "OpenXR loader not found in ${OPENXR_SDK_BUILD}/src/loader - build the OpenXR SDK first")
+    message(WARNING "OpenXR loader not found - install libopenxr-dev or build the OpenXR SDK first")
 endif()
 
 add_custom_command(TARGET SDL_gpu_examples POST_BUILD
